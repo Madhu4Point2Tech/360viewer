@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>360 Panorama Viewer</title>
+<style>
+  body, html { margin:0; height:100%; overflow:hidden; background:#000; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+let scene, camera, renderer, sphere, isDragging=false;
+let prevX=0, prevY=0, yaw=0, pitch=0;
+
+init();
+animate();
+
+function init() {
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 1000);
+  camera.position.set(0,0,0);
+
+  renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const texture = new THREE.TextureLoader().load("https://raw.githubusercontent.com/Gitboi46/Test/main/hd.jpg");
+
+  const geometry = new THREE.SphereGeometry(500, 60, 40);
+  geometry.scale(-1, 1, 1);
+
+  const material = new THREE.MeshBasicMaterial({ map:texture });
+  sphere = new THREE.Mesh(geometry, material);
+  scene.add(sphere);
+
+  renderer.domElement.addEventListener("mousedown", startDrag);
+  renderer.domElement.addEventListener("mousemove", onDrag);
+  renderer.domElement.addEventListener("mouseup", endDrag);
+
+  renderer.domElement.addEventListener("touchstart", startDrag, {passive:false});
+  renderer.domElement.addEventListener("touchmove", onDrag, {passive:false});
+  renderer.domElement.addEventListener("touchend", endDrag);
+
+  renderer.domElement.addEventListener("wheel", zoom);
+
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+
+function startDrag(e) {
+  isDragging = true;
+  const p = e.touches ? e.touches[0] : e;
+  prevX = p.clientX;
+  prevY = p.clientY;
+}
+
+function onDrag(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+
+  const p = e.touches ? e.touches[0] : e;
+  yaw   += (p.clientX - prevX) * 0.2;
+  pitch += (p.clientY - prevY) * 0.2;
+
+  pitch = Math.max(-90, Math.min(90, pitch));
+
+  prevX = p.clientX;
+  prevY = p.clientY;
+}
+
+function endDrag() { isDragging = false; }
+
+function zoom(e) {
+  camera.fov += e.deltaY * 0.01;
+  camera.fov = Math.max(30, Math.min(100, camera.fov));
+  camera.updateProjectionMatrix();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  camera.rotation.set(
+    THREE.MathUtils.degToRad(pitch),
+    THREE.MathUtils.degToRad(yaw),
+    0
+  );
+  renderer.render(scene, camera);
+}
+</script>
+</body>
+</html>
